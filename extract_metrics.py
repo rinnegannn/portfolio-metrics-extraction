@@ -17,11 +17,11 @@ def extract_text_from_pdf(pdf_path):
         return text
     
     except ImportError:
-        print("Error: pdfplumber not installed. Install with: pip install pdfplumber")
+        print("ERROR: pdfplumber not installed. Install with: pip install pdfplumber")
         return None
     
     except Exception as e:
-        print(f"Error extracting text from {pdf_path}: {e}")
+        print(f"ERROR extracting text from {pdf_path}: {e}")
         return None
     
 
@@ -84,15 +84,15 @@ Return ONLY the JSON object, no other text."""
         return metrics
         
     except json.JSONDecodeError as e:
-        print(f"JSON parsing error for {company_name}: {e}")
-        print(f"Raw response: {response_text[:200]}...")
+        print(f"  [WARNING] JSON parsing error for {company_name}: {e}")
+        print(f"  Raw response: {response_text[:200]}...")
         return {
             'company_name': company_name,
             'error': 'JSON parsing failed'
         }
     
     except Exception as e:
-        print(f"Error extracting metrics for {company_name}: {e}")
+        print(f"  [WARNING] Error extracting metrics for {company_name}: {e}")
         return {
             'company_name': company_name,
             'error': str(e)
@@ -104,7 +104,9 @@ def process_pdf_folder(folder_path, output_csv="extracted_metrics.csv"):
     # Initialize Anthropic client
     api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
-        print("\nError: ANTHROPIC_API_KEY environment variable not set")
+        print("\n[ERROR] ANTHROPIC_API_KEY environment variable not set")
+        print("Set it with: $env:ANTHROPIC_API_KEY = 'your-key-here'")
+        print("Get a free API key at: https://console.anthropic.com\n")
         return None
     
     client = anthropic.Anthropic(api_key=api_key)
@@ -112,13 +114,14 @@ def process_pdf_folder(folder_path, output_csv="extracted_metrics.csv"):
     # Find all PDF files
     folder = Path(folder_path)
     if not folder.exists():
-        print(f"\nError: Folder '{folder_path}' does not exist")
+        print(f"\n[ERROR] Folder '{folder_path}' does not exist")
+        print(f"Create it with: mkdir {folder_path}\n")
         return None
     
     pdf_files = list(folder.glob("*.pdf"))
     
     if not pdf_files:
-        print(f"\nNo PDF files found in '{folder_path}'")
+        print(f"\n[ERROR] No PDF files found in '{folder_path}'")
         print(f"Add your PDF reports to the '{folder_path}' folder and try again.\n")
         return None
     
@@ -127,37 +130,37 @@ def process_pdf_folder(folder_path, output_csv="extracted_metrics.csv"):
     results = []
     
     # Process each PDF
-    for pdf_file in pdf_files:
+    for i, pdf_file in enumerate(pdf_files, 1):
         # Filename without extension
         company_name = pdf_file.stem  
-        print(f"Processing: {company_name}")
+        print(f"[{i}/{len(pdf_files)}] Processing: {company_name}")
         
-        # Firstly, extract text from PDF
+        # Step 1: Extract text from PDF
         pdf_text = extract_text_from_pdf(pdf_file)
         
         if pdf_text is None:
-            print(f"Failed to extract text\n")
+            print(f"  [ERROR] Failed to extract text\n")
             continue
         
         if len(pdf_text) < 50:
-            print(f"Warning: Very little text extracted ({len(pdf_text)} chars)")
-            print(f"This might be a scanned PDF that needs OCR\n")
+            print(f"  [WARNING] Very little text extracted ({len(pdf_text)} chars)")
+            print(f"  This might be a scanned PDF that needs OCR\n")
             continue
         
-        print(f"Extracted {len(pdf_text):,} characters of text")
+        print(f"  [OK] Extracted {len(pdf_text):,} characters of text")
         
         # Step 2: Extract metrics using LLM
         metrics = extract_metrics_llm(company_name, pdf_text, client)
         
         if 'error' not in metrics:
-            print(f"Extracted metrics successfully")
+            print(f"  [OK] Extracted metrics successfully")
         
         results.append(metrics)
         print()
     
     # Convert to DataFrame and save
     if not results:
-        print("\nNo results to save\n")
+        print("\n[ERROR] No results to save\n")
         return None
     
     df = pd.DataFrame(results)
@@ -170,7 +173,7 @@ def process_pdf_folder(folder_path, output_csv="extracted_metrics.csv"):
     df.to_csv(output_csv, index=False)
     
     print("=" * 70)
-    print(f"Results saved to: {output_csv}")
+    print(f"SUCCESS: Results saved to {output_csv}")
     print("=" * 70)
     print("\nExtracted Metrics Summary:\n")
     print(df.to_string(index=False))
@@ -189,7 +192,7 @@ def process_pdf_folder(folder_path, output_csv="extracted_metrics.csv"):
     if 'error' in df.columns:
         error_count = df['error'].notna().sum()
         if error_count > 0:
-            print(f"\n{error_count} extraction(s) had errors")
+            print(f"\n  [WARNING] {error_count} extraction(s) had errors")
     
     print()
     
@@ -197,10 +200,31 @@ def process_pdf_folder(folder_path, output_csv="extracted_metrics.csv"):
     
 
 def main():
+    """
+    Main execution function.
+    """
     print("=" * 70)
     print(" " * 15 + "Portfolio Metrics Extraction Tool")
     print("=" * 70)
     print("\nExtracts financial and operating metrics from PDF reports using AI\n")
+    
+    # Configuration
+    pdf_folder = "pdfs"
+    output_file = "extracted_metrics.csv"
+    
+    # Process PDFs
+    df = process_pdf_folder(pdf_folder, output_file)
+    
+    if df is not None:
+        print("=" * 70)
+        print("SUCCESS: Extraction Complete!")
+        print("=" * 70)
+        print(f"\nNext steps:")
+        print(f"  1. Open {output_file} in Excel or Google Sheets")
+        print(f"  2. Review extracted metrics")
+        print(f"  3. Add more PDFs to '{pdf_folder}' folder and run again")
+        print()
+
 
 if __name__ == "__main__":
     main()
