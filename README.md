@@ -169,7 +169,6 @@ export ANTHROPIC_API_KEY='sk-ant-...'  # or $env: on Windows
 **"No PDF files found"**
 ```bash
 mkdir pdfs
-# Add PDF files to pdfs/ folder
 ```
 
 **"Very little text extracted"**
