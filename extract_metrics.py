@@ -4,6 +4,26 @@ import anthropic
 from pathlib import Path
 import pandas as pd
 
+def extract_text_from_pdf(pdf_path):
+    try:
+        import pdfplumber
+        with pdfplumber.open(pdf_path) as pdf:
+            text = ""
+            for page in pdf.pages:
+                page_text = page.extract_text()
+                if page_text:
+                    text += page_text + "\n"
+        
+        return text
+    
+    except ImportError:
+        print("Error: pdfplumber not installed. Install with: pip install pdfplumber")
+        return None
+    
+    except Exception as e:
+        print(f"Error extracting text from {pdf_path}: {e}")
+        return None
+    
 
 def extract_metrics_llm(company_name, pdf_text, client):
     
