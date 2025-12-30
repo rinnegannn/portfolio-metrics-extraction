@@ -324,7 +324,7 @@ def main():
     print("=" * 70)
     print("\nExtracts financial and operating metrics from PDF reports using AI\n")
     
-    pdf_folder = "pdfs"
+    pdf_folder = "sample_pdfs"
     output_file = "extracted_metrics.csv"
     
     # Execute main processing workflow
