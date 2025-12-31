@@ -2,7 +2,7 @@
 Portfolio Metrics Extraction Tool
 
 This module extracts financial and operating metrics from portfolio company 
-PDF reports using Claude AI for semantic understanding of varied document formats
+PDF reports using Google Gemini AI for semantic understanding of varied document formats
 
 The tool handles:
 - Different report structures (tables, prose, mixed formats)
@@ -15,7 +15,7 @@ Aryan Verma, Janaury 2026
 
 import os
 import json
-import anthropic
+from google import genai
 from pathlib import Path
 import pandas as pd
 
@@ -66,7 +66,7 @@ def extract_text_from_pdf(pdf_path):
 
 def extract_metrics_llm(company_name, pdf_text, client):
     """
-    Extract structured financial metrics from PDF text using Claude AI
+    Extract structured financial metrics from PDF text using Google Gemini AI
     
     This function uses semantic understanding to handle:
     - Terminology variations (For example, "Revenue" vs "Recognized Revenue")
@@ -76,7 +76,7 @@ def extract_metrics_llm(company_name, pdf_text, client):
     Args:
         company_name (str): Company identifier (used in error reporting)
         pdf_text (str): Full text content extracted from PDF
-        client (anthropic.Anthropic): Initialized API client
+        client: Initialized Gemini client
         
     Returns:
         dict: Extracted metrics with keys:
@@ -122,19 +122,16 @@ COMPANY REPORT TEXT:
 Return ONLY the JSON object, no other text."""
 
     try:
-        message = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=1000,
-            messages=[
-                {"role": "user", "content": prompt}
-            ]
+        response = client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=prompt
         )
         
         # Extract text from API response object
-        response_text = message.content[0].text
+        response_text = response.text
         
-        # Clean up response to handle Claude's occasional markdown formatting
-        # This is necessary because Claude sometimes wraps JSON in code blocks even when explicitly instructed not to
+        # Clean up response to handle Gemini's occasional markdown formatting
+        # This is necessary because Gemini sometimes wraps JSON in code blocks even when explicitly instructed not to
         response_text = response_text.strip()
         if response_text.startswith("```json"):
             response_text = response_text[7:]  
@@ -192,15 +189,15 @@ def process_pdf_folder(folder_path, output_csv="extracted_metrics.csv"):
     
     # Validate API key before attempting any processing
     # Fail fast rather than processing PDFs only to fail at API call
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    api_key = os.environ.get("GOOGLE_API_KEY")
     if not api_key:
-        print("\n[ERROR] ANTHROPIC_API_KEY environment variable not set")
-        print("Set it with: $env:ANTHROPIC_API_KEY = 'your-key-here'")
-        print("Get a free API key at: https://console.anthropic.com\n")
+        print("\n[ERROR] GOOGLE_API_KEY environment variable not set")
+        print("Set it with: export GOOGLE_API_KEY='your-key-here'")
+        print("Get a free API key at: https://aistudio.google.com/apikey\n")
         return None
     
-    # Initialize API client with validated key
-    client = anthropic.Anthropic(api_key=api_key)
+    # Initialize Gemini client with validated key
+    client = genai.Client(api_key=api_key)
     
     # Verify target folder exists before scanning for PDFs
     folder = Path(folder_path)
