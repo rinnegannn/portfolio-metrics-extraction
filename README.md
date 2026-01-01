@@ -2,6 +2,12 @@
 
 Automated extraction of financial and operating metrics from portfolio company PDF reports using Claude AI.
 
+## 📹 Demo Video
+
+[![Watch the Demo](https://img.youtube.com/vi/H8oArcK__h4/0.jpg)](https://www.youtube.com/watch?v=H8oArcK__h4)
+
+*Click the image above to watch a walkthrough of the project*
+
 ---
 
 ## Approach & Decision-Making
