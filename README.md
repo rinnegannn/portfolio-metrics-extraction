@@ -1,6 +1,6 @@
 # Portfolio Metrics Extraction
 
-Automated extraction of financial and operating metrics from portfolio company PDF reports using Claude AI.
+Automated extraction of financial and operating metrics from portfolio company PDF reports using Gemini AI.
 
 ## 📹 Demo Video
 
@@ -39,7 +39,7 @@ I evaluated three approaches:
 
 **Components Selected**:
 - **pdfplumber** for text extraction (handles tables reliably)
-- **Claude Sonnet 4** for semantic extraction 
+- **Gemini Sonnet 4** for semantic extraction 
 - **pandas + CSV** for output 
 
 **7 Metrics Chosen**:
@@ -130,11 +130,11 @@ PeopleFlow,5.1,21.4,73,96,4.2,,118
 
 ## How It Works
 ```
-PDF → Extract Text (pdfplumber) → Semantic Extraction (Claude AI) → Parse JSON → CSV Output
+PDF → Extract Text (pdfplumber) → Semantic Extraction (Gemini AI) → Parse JSON → CSV Output
 ```
 
 1. **Text Extraction**: pdfplumber extracts all text, preserving tables and layout
-2. **LLM Processing**: Claude receives text with structured prompt specifying:
+2. **LLM Processing**: Gemini receives text with structured prompt specifying:
    - Exact metrics to extract
    - Output format (JSON with specific keys)
    - Instructions to ignore one-time items
