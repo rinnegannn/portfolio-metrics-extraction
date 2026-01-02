@@ -4,13 +4,22 @@ Automated extraction of financial and operating metrics from portfolio company P
 
 ## 📹 Demo Video
 
-[![Watch the Demo](https://img.youtube.com/vi/H8oArcK__h4/0.jpg)](https://www.youtube.com/watch?v=H8oArcK__h4)
+[![Watch the Demo](https://img.youtube.com/vi/ZEI-DJSw5DM/0.jpg)](https://youtu.be/ZEI-DJSw5DM)
 
 *Click the image above to watch a walkthrough of the project*
 
 ---
 
 ## Approach & Decision-Making
+
+### The Problem
+Sagard receives quarterly PDF reports from portfolio companies that vary widely in **structure**, **terminology**, and **metric availability**. Manual extraction is time-consuming, error-prone, and not scalable.
+
+### Goal (1-2 Hour POC)
+1. Build a simple, end-to-end pipeline
+2. Focus on accuracy over completeness
+3. Handle messy, inconsistent PDFs
+4. Produce structured output suitable for review
 
 ### How I Approached the Problem
 
@@ -19,41 +28,64 @@ I broke the challenge into three questions:
 2. Which metrics matter most across different business models?
 3. How do I deliver results quickly in a reviewable format?
 
-**Key insight**: The core problem is **format variability**, not just data extraction. Traditional regex breaks when reports change structure. An LLM approach handles variations through semantic understanding.
+### Solution Strategy
+To solve these, I broke the technical implementation into three logical phases:
 
-### What I Chose to Implement and Why
+1. **Bridge the Format Gap (PDF to Text)**: 
+   PDFs are designed for humans, not machines. By first converting the PDF into a raw text stream, I strip away "noise" (layout, colors, fonts). This creates a clean input that lets the LLM focus purely on the meaning of the words.
 
-**Architecture Decision: LLM-Powered Extraction**
+2. **Semantic Interpretation (Text to JSON)**:
+   Rather than writing 100+ rules for every phrasing variation, I leverage an LLM which replaces rigid, hard-coded rules with flexible semantic understanding. It can distinguish between *Quarterly Revenue* and *Interest Expense* by context, just like a human analyst would, and formatted as machine-readable JSON.
 
-I evaluated three approaches:
+3. **User-Centric Delivery (JSON to CSV)**:
+   JSON is great for systems, but it is not friendly for analysts. The final step converts the extracted data into a CSV, enabling Sagard’s team to immediately compare performance across the entire portfolio in Excel.
 
-1. Regex (breaks with new formats)
-2. NLP (needs pattern updates)
-3. LLM (needs prompt updates)
+### Approaches Considered
 
-**Decision**: LLM approach because it:
-- Handles terminology variations automatically ("Revenue" = "Recognized Revenue")
-- Understands context 
-- Requires minimal code
-- Scales easily (adding metrics = updating prompt, not rewriting code)
+I evaluated three technical paths, prioritizing accuracy and scalability:
 
-**Components Selected**:
-- **pdfplumber** for text extraction (handles tables reliably)
-- **Gemini Sonnet 4** for semantic extraction 
-- **pandas + CSV** for output 
+| Approach | Pros | Cons |
+| :--- | :--- | :--- |
+| **Regex & Rule-Based** | Deterministic, no API costs, transparent logic | **Fragile to layout variations**, high maintenance, no semantic awareness |
+| **NLP** | More flexible than regex, better context awareness | **Heavy pattern engineering**, limited reasoning for complex tables |
+| **LLMs (Selected)** | **Handles messy data**, true semantic understanding, highly extensible | API cost, requires internet, potential for "hallucinations" |
 
-**7 Metrics Chosen**:
-- **Universal**: Revenue, Gross Margin, Headcount (all companies report these)
-- **SaaS-specific**: ARR, Logo Churn, NDR (critical for subscription businesses)
-- **Financial health**: Cash Balance (runway indicator)
+**Decision**: **LLM-Powered Extraction** because it handles terminology variations automatically ("Revenue" = "Recognized Revenue") and scales easily (adding metrics only requires a prompt update).
 
-These cover the metrics investors review in quarterly board meetings and allow comparison across portfolio companies despite different business models.
+### Implementation Details
+- **pdfplumber**: Used because it can accurately read complex PDF layouts. This is important for financial reports where numbers and labels are spread across multiple columns, and keeping their positions aligned prevents incorrect data extraction.
+- **Gemini 2.0 Flash**: Chosen for its fast performance and strong reasoning abilities. Its structured response feature allows the model to return clean, predictable JSON, making the extracted metrics more reliable without relying on fragile text-matching rules.
+- **pandas + CSV**: Used to convert the structured output into a format analysts can easily work with. Pandas cleans and organizes the data, and exporting to CSV makes it ready for analysis, reporting, or financial modeling.
+
+### Why JSON?
+While the final output is a CSV, JSON is used as the intermediate format between the AI and the spreadsheet to ensure data integrity:
+- **Schema Enforcement**: Guarantees that the AI returns exact keys (e.g., `arr_m`) every time, preventing broken columns in the final report.
+- **Type Safety**: Ensures that numeric values stay as numbers and missing data is explicitly marked as `null` rather than empty strings.
+- **Validation**: Allows the system to "fail fast" if the AI returns a malformed response, the script can catch the error before it corrupts the final dataset.
+
+### Why CSV?
+CSV was selected as the output format to prioritize **portability** and **ease of use** for the end user:
+- **Finance-Friendly**: Allows immediate review and manipulation in Excel or Google Sheets, the primary tools for investment analysts.
+- **Aggregatable**: Enables easy comparison across multiple portfolio companies in a single view.
+- **System Agnostic**: Can be easily imported into downstream databases, CRMs (like Salesforce), or BI tools without complex parsing.
+
+### Metric Selection Strategy
+
+I selected 7 core metrics to balance broad financial visibility with deep-dive SaaS analytics:
+
+| Category | Metrics | Strategic Value |
+| :--- | :--- | :--- |
+| **Universal** | Revenue, Gross Margin, Headcount | Baseline indicators of scale and operational efficiency. |
+| **SaaS-Specific** | ARR, Logo Churn, NDR | Critical signals for subscription health and retention. |
+| **Financial Health** | Cash Balance | Essential for monitoring runway and capital requirements. |
+
+This selection enables standardized benchmarking across the portfolio, focusing on the data points most critical for quarterly board-level reviews.
 
 ### Key Assumptions
 
 1. **PDFs are text-based, not scanned images**
    - All sample PDFs are digitally generated with extractable text
-   - *If wrong*: Would need OCR integration (adds ~30 min development)
+   - *If wrong*: Would need OCR integration
 
 2. **Revenue means recognized/quarterly revenue**
    - Not deferred revenue, bookings, or backlog
@@ -63,16 +95,15 @@ These cover the metrics investors review in quarterly board meetings and allow c
    - Standardized output for cross-company comparison
    - Currency differences noted but not converted
 
-4. **Missing metrics return `null`, not zero**
-   - Preserves data integrity (distinguishes "not found" from "zero value")
-   - Non-SaaS companies won't have ARR - that's expected, not an error
+4. **Missing metrics return `null` rather than zero**
+   - Preserves data integrity by distinguishing between a reported zero and missing information
+   - Accounts for business model variations (for example, non-SaaS companies will correctly show `null` for ARR rather than an incorrect zero)
 
-5. **Out of scope for 1-2 hour POC**:
-   - OCR for scanned PDFs
-   - Quarter/year extraction (assumes filename convention)
-   - Historical trend analysis
+5. **Out of scope**:
+   - OCR for scanned images
+   - Automated period/date detection
    - Currency conversion
-   - Production infrastructure (logging, monitoring, retry logic)
+   - Production-grade infrastructure (logging, monitoring, retries)
 
 ---
 
@@ -83,21 +114,21 @@ These cover the metrics investors review in quarterly board meetings and allow c
 pip install -r requirements.txt
 ```
 
-**Requirements**: Python 3.8+, anthropic, pdfplumber, pandas
+**Requirements**: Python 3.8+, `google-genai`, `pdfplumber`, `pandas`
 
 ### 2. Set API Key
 ```bash
-# Get free key at: https://console.anthropic.com
-export ANTHROPIC_API_KEY='sk-ant-your-key-here'
+# Get free key at: https://aistudio.google.com/app/apikey
+export GOOGLE_API_KEY='your-api-key-here'
 
 # Windows PowerShell:
-$env:ANTHROPIC_API_KEY = "sk-ant-your-key-here"
+$env:GOOGLE_API_KEY = "your-api-key-here"
 ```
 
 ### 3. Add PDFs and Run
 ```bash
-mkdir pdfs
-# Copy PDF reports to pdfs/ folder
+mkdir sample_pdfs
+# Copy PDF reports to sample_pdfs/ folder
 python extract_metrics.py
 ```
 
@@ -128,7 +159,7 @@ PeopleFlow,5.1,21.4,73,96,4.2,,118
 
 ---
 
-## How It Works
+## How It Works (System Pipeline)
 ```
 PDF → Extract Text (pdfplumber) → Semantic Extraction (Gemini AI) → Parse JSON → CSV Output
 ```
@@ -167,14 +198,14 @@ PDF → Extract Text (pdfplumber) → Semantic Extraction (Gemini AI) → Parse 
 
 ## Troubleshooting
 
-**"ANTHROPIC_API_KEY not set"**
+**"GOOGLE_API_KEY not set"**
 ```bash
-export ANTHROPIC_API_KEY='sk-ant-...'  # or $env: on Windows
+export GOOGLE_API_KEY='your-api-key-here' 
 ```
 
 **"No PDF files found"**
 ```bash
-mkdir pdfs
+mkdir sample_pdfs
 ```
 
 **"Very little text extracted"**
@@ -187,3 +218,4 @@ mkdir pdfs
 Built for Sagard's Technical Challenge
 
 **Aryan Verma** | verma63@mcmaster.ca
+```
