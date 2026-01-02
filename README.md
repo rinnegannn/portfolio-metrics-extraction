@@ -32,13 +32,13 @@ I broke the challenge into three questions:
 To solve these, I broke the technical implementation into three logical phases:
 
 1. **Bridge the Format Gap (PDF to Text)**: 
-   PDFs are designed for humans, not machines. By first converting the PDF into a raw text stream, I strip away "noise" (layout, colors, fonts). This creates a clean input that lets the LLM focus purely on the meaning of the words.
+   PDFs are designed for people, not machines. Converting them to text removes formatting like layouts and fonts, creating a clean input that lets the LLM focus on the actual content.
 
 2. **Semantic Interpretation (Text to JSON)**:
    Rather than writing 100+ rules for every phrasing variation, I leverage an LLM which replaces rigid, hard-coded rules with flexible semantic understanding. It can distinguish between *Quarterly Revenue* and *Interest Expense* by context, just like a human analyst would, and formatted as machine-readable JSON.
 
 3. **User-Centric Delivery (JSON to CSV)**:
-   JSON is great for systems, but it is not friendly for analysts. The final step converts the extracted data into a CSV, enabling Sagard’s team to immediately compare performance across the entire portfolio in Excel.
+   JSON is great for systems, but it is not friendly for analysts. The final step converts the extracted data into a CSV, enabling Sagard’s team to immediately compare performance across the entire portfolio in Excel or ingest the data into other downstream platforms like Tableau or PowerBI.
 
 ### Approaches Considered
 
