@@ -174,7 +174,7 @@ PDF → Extract Text (pdfplumber) → Semantic Extraction (Gemini AI) → Parse 
 ### Production Evolution
 **Phase 1** (1-2 weeks): Add quarter/year extraction, confidence scores, validation rules
 
-**Phase 2** (1-2 months): OCR integration, parallel processing, QoQ comparison, dashboard integration
+**Phase 2** (1-2 months): OCR integration, parallel processing, dashboard integration
 
 **At Scale**: Current manual process costs ~$33k/year for 500 companies. This approach: ~$3.4k/year (87% savings).
 
