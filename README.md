@@ -218,4 +218,3 @@ mkdir sample_pdfs
 Built for Sagard's Technical Challenge
 
 **Aryan Verma** | verma63@mcmaster.ca
-```
