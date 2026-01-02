@@ -83,27 +83,11 @@ This selection enables standardized benchmarking across the portfolio, focusing 
 
 ### Key Assumptions
 
-1. **PDFs are text-based, not scanned images**
-   - All sample PDFs are digitally generated with extractable text
-   - *If wrong*: Would need OCR integration
-
-2. **Revenue means recognized/quarterly revenue**
-   - Not deferred revenue, bookings, or backlog
-   - Most recent quarter if multiple periods shown
-
-3. **Monetary values are in millions**
-   - Standardized output for cross-company comparison
-   - Currency differences noted but not converted
-
-4. **Missing metrics return `null` rather than zero**
-   - Preserves data integrity by distinguishing between a reported zero and missing information
-   - Accounts for business model variations (for example, non-SaaS companies will correctly show `null` for ARR rather than an incorrect zero)
-
-5. **Out of scope**:
-   - OCR for scanned images
-   - Automated period/date detection
-   - Currency conversion
-   - Production-grade infrastructure (logging, monitoring, retries)
+* **Text-based PDFs**: The reports are digitally generated with extractable text, not scanned images.
+* **Standard Metrics**: The tool extracts reported investor-facing metrics (Revenue, ARR, Headcount, etc.).
+* **Extraction vs. Computation**: The goal is to extract metrics as reported, not to compute or derive new ones.
+* **Standardization**: Monetary values are extracted in millions and Revenue specifically refers to recognized/quarterly revenue.
+* **Data Integrity**: Missing or non-applicable metrics return `null` rather than a guessed value or zero.
 
 ---
 
