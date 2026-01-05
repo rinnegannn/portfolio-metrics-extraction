@@ -2,7 +2,23 @@
 
 Automated extraction of financial and operating metrics from portfolio company PDF reports using Gemini AI.
 
-## 📹 Demo Video
+## Table of Contents
+- [Demo Video](#demo-video)
+- [Approach & Decision-Making](#approach--decision-making)
+  - [The Problem](#the-problem)
+  - [Solution Strategy](#solution-strategy)
+  - [Approaches Considered](#approaches-considered)
+  - [Metric Selection Strategy](#metric-selection-strategy)
+  - [Key Assumptions](#key-assumptions)
+  - [Limitations & Next Steps](#limitations--next-steps)
+- [Quick Start](#quick-start)
+- [What Gets Extracted](#what-gets-extracted)
+- [How It Works](#how-it-works-system-pipeline)
+- [Troubleshooting](#troubleshooting)
+- [Author](#author)
+
+
+## Demo Video
 
 [![Watch the Demo](https://img.youtube.com/vi/ZEI-DJSw5DM/0.jpg)](https://youtu.be/ZEI-DJSw5DM)
 
@@ -23,39 +39,40 @@ Sagard receives quarterly PDF reports from portfolio companies that vary widely 
 
 ### How I Approached the Problem
 
-I broke the challenge into three questions:
-1. How do I handle varied PDF formats and inconsistent terminology?
+I broke the challenge into four key questions:
+1. How do I handle varied PDF structures and complex layouts?
 2. Which metrics matter most across different business models?
-3. How do I deliver results quickly in a reviewable format?
+3. How do I extract data accurately despite inconsistent terminology?
+4. How do I deliver results quickly in a reviewable format?
 
 ### Solution Strategy
-To solve these, I broke the technical implementation into three logical phases:
+To address these questions, I broke the technical implementation into three logical phases:
 
-1. **Bridge the Format Gap (PDF to Text)**: 
-   PDFs are designed for people, not machines. Converting them to text removes formatting like layouts and fonts, creating a clean input that lets the LLM focus on the actual content.
+1. **PDF to Raw Text**: 
+   PDFs are designed for people, however are not easily interpreted by machines. Converting them to text removes formatting like layouts and fonts, creating a clean input that allows the rest of the pipeline to focus on the actual content.
 
-2. **Semantic Interpretation (Text to JSON)**:
-   Rather than writing 100+ rules for every phrasing variation, I leverage an LLM which replaces rigid, hard-coded rules with flexible semantic understanding. It can distinguish between *Quarterly Revenue* and *Interest Expense* by context, just like a human analyst would, and formatted as machine-readable JSON.
+2. **Raw Text to Structured JSON**: 
+   Rather than writing 100+ rules for every phrasing variation (eliminating the need for fragile regex or custom NLP models), I leverage an LLM which replaces hard-coded rules with semantic understanding. It can distinguish between *Quarterly Revenue* and *Interest Expense* by context, just like a human analyst would, and formatted as machine-readable JSON.
 
-3. **User-Centric Delivery (JSON to CSV)**:
-   JSON is great for systems, but it is not friendly for analysts. The final step converts the extracted data into a CSV, enabling Sagard’s team to immediately compare performance across the entire portfolio in Excel or ingest the data into other downstream platforms like Tableau or PowerBI.
+3. **Structured JSON to CSV**: 
+   JSON is ideal for machine processing but impractical for direct human analysis. This final step converts the structured data into a CSV format, enabling Sagard’s team to immediately compare performance across the portfolio in Excel or integrate the data into BI platforms like Tableau and PowerBI.
 
 ### Approaches Considered
 
-I evaluated three technical paths, prioritizing accuracy and scalability:
+I evaluated three main technologies for the extraction process, prioritizing accuracy and scalability:
 
 | Approach | Pros | Cons |
 | :--- | :--- | :--- |
 | **Regex & Rule-Based** | Deterministic, no API costs, transparent logic | **Fragile to layout variations**, high maintenance, no semantic awareness |
-| **NLP** | More flexible than regex, better context awareness | **Heavy pattern engineering**, limited reasoning for complex tables |
-| **LLMs (Selected)** | **Handles messy data**, true semantic understanding, highly extensible | API cost, requires internet, potential for "hallucinations" |
+| **NLP** | More flexible than regex, better context awareness (can identify entities)| **Heavy pattern engineering**, high maintenance, limited reasoning for complex tables |
+| **LLMs (Selected)** | **Handles messy data**, true semantic understanding, highly extensible | API cost, external dependency, potential for "hallucinations" |
 
 **Decision**: **LLM-Powered Extraction** because it handles terminology variations automatically ("Revenue" = "Recognized Revenue") and scales easily (adding metrics only requires a prompt update).
 
 ### Implementation Details
-- **pdfplumber**: Used because it can accurately read complex PDF layouts. This is important for financial reports where numbers and labels are spread across multiple columns, and keeping their positions aligned prevents incorrect data extraction.
-- **Gemini 2.0 Flash**: Chosen for its fast performance and strong reasoning abilities. Its structured response feature allows the model to return clean, predictable JSON, making the extracted metrics more reliable without relying on fragile text-matching rules.
-- **pandas + CSV**: Used to convert the structured output into a format analysts can easily work with. Pandas cleans and organizes the data, and exporting to CSV makes it ready for analysis, reporting, or financial modeling.
+- **pdfplumber**: Handles page-by-page text extraction while preserving layout structure (crucial for multi-column reports).
+- **Gemini 2.0 Flash**: Transforms unstructured text into schema-validated JSON using reasoning.
+- **pandas + CSV**: Cleans and organizes the data into a portable, spreadsheet-ready format for immediate analysis.
 
 ### Why JSON?
 While the final output is a CSV, JSON is used as the intermediate format between the AI and the spreadsheet to ensure data integrity:
@@ -67,27 +84,41 @@ While the final output is a CSV, JSON is used as the intermediate format between
 CSV was selected as the output format to prioritize **portability** and **ease of use** for the end user:
 - **Finance-Friendly**: Allows immediate review and manipulation in Excel or Google Sheets, the primary tools for investment analysts.
 - **Aggregatable**: Enables easy comparison across multiple portfolio companies in a single view.
-- **System Agnostic**: Can be easily imported into downstream databases, CRMs (like Salesforce), or BI tools without complex parsing.
+- **Universally Compatible**: Can be directly imported into CRM systems (Salesforce), databases, or BI tools like Tableau and PowerBI without any extra processing.
 
 ### Metric Selection Strategy
 
-I selected 7 core metrics to balance broad financial visibility with deep-dive SaaS analytics:
+I chose these 7 core metrics to provide a clear picture of both general business performance and SaaS-specific growth:
 
 | Category | Metrics | Strategic Value |
 | :--- | :--- | :--- |
-| **Universal** | Revenue, Gross Margin, Headcount | Baseline indicators of scale and operational efficiency. |
-| **SaaS-Specific** | ARR, Logo Churn, NDR | Critical signals for subscription health and retention. |
-| **Financial Health** | Cash Balance | Essential for monitoring runway and capital requirements. |
+| **Universal** | Revenue, Gross Margin, Headcount | Key indicators of scale and operational efficiency. |
+| **SaaS-Specific** | ARR, Logo Churn, NDR | Critical for tracking subscription growth and customer retention. |
+| **Financials** | Cash Balance | Used to track available cash and funding needs. |
 
-This selection enables standardized benchmarking across the portfolio, focusing on the data points most critical for quarterly board-level reviews.
+These metrics were chosen based on:
+- **Universal Relevance**: Metrics that matter across almost any business model.
+- **SaaS Specifics**: Key indicators specifically for subscription-based companies.
+- **Usefulness**: Data points that are the most helpful for a quick performance review.
 
 ### Key Assumptions
 
+* **English Language**: The reports are written in English.
 * **Text-based PDFs**: The reports are digitally generated with extractable text, not scanned images.
-* **Standard Metrics**: The tool extracts reported investor-facing metrics (Revenue, ARR, Headcount, etc.).
 * **Extraction vs. Computation**: The goal is to extract metrics as reported, not to compute or derive new ones.
-* **Standardization**: Monetary values are extracted in millions and Revenue specifically refers to recognized/quarterly revenue.
 * **Data Integrity**: Missing or non-applicable metrics return `null` rather than a guessed value or zero.
+
+### Limitations & Next Steps
+
+While this POC proves the core concept, I would prioritize the following for a production-ready version:
+
+- **OCR Integration**: Add support for scanned or image-based PDFs.
+- **Parallel Processing**: Move from sequential to concurrent processing to handle large portfolios.
+- **Automated Verification**: Implement confidence scores, range checks, and anomaly detection to flag outlier results for human review.
+- **User Interface**: Build a web-based dashboard to make the tool more accessible for non-technical analysts.
+- **Persistence & Trend Analysis**: Move from CSV to a cloud database to enable historical tracking and cross-portfolio comparisons.
+
+All of these were intentionally deferred to focus the immediate effort on perfecting the **semantic extraction** logic.
 
 ---
 
@@ -160,23 +191,6 @@ PDF → Extract Text (pdfplumber) → Semantic Extraction (Gemini AI) → Parse 
 - Handles "Revenue: $9.3M" and "recognized revenue totalled 6.8M" identically
 - Distinguishes "$9.3M revenue" from "$0.6M warehouse exit cost"
 - Adapts to new report formats automatically
-
----
-
-## Limitations & Next Steps
-
-### Current Limitations
-- No OCR (scanned PDFs won't work)
-- No quarter/year extraction (assumes filename has this)
-- No currency conversion (values extracted as-is)
-- Sequential processing (fine for <50 PDFs, would parallelize for scale)
-
-### Production Evolution
-**Phase 1** (1-2 weeks): Add quarter/year extraction, confidence scores, validation rules
-
-**Phase 2** (1-2 months): OCR integration, parallel processing, dashboard integration
-
-**At Scale**: Current manual process costs ~$33k/year for 500 companies. This approach: ~$3.4k/year (87% savings).
 
 ---
 
